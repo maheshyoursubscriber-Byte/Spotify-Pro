@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MusicX - User Panel</title>
+    <style>
+        /* CSS Reset & Base Styles */
+        :root {
+            --primary-color: #1DB954;
+            --primary-hover: #1ED760;
+            --background-dark: #121212;
+            --surface-dark: #181818;
+            --text-dark: #FFFFFF;
+            --text-secondary-dark: #b3b3b3;
+            --background-light: #F0F0F0;
+            --surface-light: #FFFFFF;
+            --text-light: #000000;
+            --text-secondary-light: #535353;
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --shadow-dark: rgba(0, 0, 0, 0.5);
+            --font-family: 'Helvetica Neue', Arial, sans-serif;
+            --bottom-player-height: 0px; /* JS will update this */
+        }
+
+        html {
+            box-sizing: border-box;
+            font-family: var(--font-family);
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+            transition: background-color 2.3s, color 2.3s;
+            padding-bottom: calc(var(--bottom-player-height) + 20px); /* Space for player */
+        }
+
+        body.light-mode {
+            --background-dark: var(--background-light);
+            --surface-dark: var(--surface-light);
+            --text-dark: var(--text-light);
+            --text-secondary-dark: var(--text-secondary-light);
+            --shadow-dark: var(--shadow-light);
+        }
+        
+        /* Entry Loader */
+        .loader-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background-dark);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .loader-wrapper.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader-logo {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .loader-text {
+            margin-top: 1rem;
+            color: var(--text-secondary-dark);
+        }
+
+        /* General UI Components */
+        .app-container {
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem; /* Adjusted margin */
+        }
+        
+        .search-bar {
+            flex-grow: 1;
+            margin-right: 1rem;
+            position: relative;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border-radius: 50px;
+            border: none;
+            background-color: var(--surface-dark);
+            color: var(--text-dark);
+            font-size: 1rem;
+        }
+
+        .search-bar .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary-dark);
+        }
+        .search-icon img { width: 16px; height: 16px; display: block; opacity: 0.8; }
+        body.light-mode .search-icon img { opacity: 0.7; }
+
+        .theme-switcher, .icon-button {
+            background: var(--surface-dark);
+            border: none;
+            color: var(--text-dark);
+            padding: 0.5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .top-bar .icon-button { margin-left: 0.5rem; }
+        .icon-button img { width: 20px; height: 20px; pointer-events: none; }
+        .theme-switcher img { width: 20px; height: 20px; display: block; }
+
+        .premium-status-display {
+            width: 100%;
+            text-align: center;
+            padding: 0.25rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            background-color: rgba(29, 185, 84, 0.1);
+            border: 1px solid rgba(29, 185, 84, 0.2);
+            border-radius: 5px;
+        }
+        
+        /* 🎨 PROMOTIONAL CHANNEL SLIDER FEATURE: CSS 🎨 */
+        .promo-channel-container {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            position: relative;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .promo-slides-wrapper {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+        .promo-slide {
+            min-width: 100%;
+            cursor: pointer;
+            position: relative;
+            aspect-ratio: 16 / 7;
+            background-size: cover;
+            background-position: center;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 1.5rem;
+        }
+        .promo-slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.8) 100%);
+            z-index: 1;
+        }
+        .promo-slide-content {
+            position: relative;
+            z-index: 2;
+        }
+        .promo-slide-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+        }
+        .promo-slide-subtitle {
+            font-size: 1rem;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+            max-width: 80%;
+        }
+        .promo-dots-container {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 3;
+        }
+        .promo-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .promo-dot.active {
+            background-color: white;
+            transform: scale(1.2);
+        }
+
+        /* Legacy  Slider (will be unused if promo channel has items) */
+        .banner-slider {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        .banner-slides { display: flex; transition: transform 0.5s ease-in-out; }
+        .banner-slide { min-width: 100%; }
+        .banner-slide img { width: 100%; display: block; }
+        
+        /* Song Sections */
+        .song-section { margin-bottom: 2rem; }
+        .section-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; }
+        .song-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
+        .song-grid.horizontal-scroll { display: flex; overflow-x: auto; padding-bottom: 1rem; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+        .song-grid.horizontal-scroll .song-item { flex: 0 0 140px; width: 140px; }
+        .song-item { background-color: transparent; border-radius: 8px; overflow: hidden; cursor: pointer; transition: background-color 0.2s; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        .song-item:hover { background-color: var(--surface-dark); }
+        .song-item-banner { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px; }
+        .song-item-info { padding: 0.75rem 0.5rem; }
+        .song-item-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-dark); }
+        .song-item-artist { font-size: 0.85rem; color: var(--text-secondary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* Bottom Sheet Player */
+.bottom-sheet-player {
+  position: fixed;
+  bottom: 0; left: 0;
+  width: 100%;
+  background-color: var(--surface-dark);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 1000;
+  padding: 1.5rem;
+  box-shadow: 0 -5px 20px var(--shadow-dark);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ✅ sirf thumbnail ko center karo */
+.player-album-art {
+  display: block;     /* image ko block banata hai */
+  margin: 0 auto 1.5rem; /* auto margin se horizontal center hoga */
+}
+        .bottom-sheet-player.active { transform: translateY(0); }
+        .player-album-art { width: 60vw; height: 60vw; max-width: 250px; max-height: 250px; border-radius: 50%; margin: 0 auto 1.5rem; object-fit: cover; box-shadow: 0 5px 25px var(--shadow-dark); animation: rotate 12s linear infinite; animation-play-state: paused; }
+        .player-album-art.playing { animation-play-state: running; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .player-song-info { text-align: center; margin-bottom: 1.5rem; }
+        .player-song-title { font-size: 1.4rem; font-weight: bold; }
+        .player-song-artist { font-size: 1rem; color: var(--text-secondary-dark); }
+        .player-progress { margin-bottom: 1rem; }
+        .progress-bar { width: 100%; -webkit-appearance: none; appearance: none; height: 5px; background: #404040; border-radius: 5px; outline: none; cursor: pointer; }
+        .progress-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 15px; height: 15px; background: var(--primary-color); border-radius: 50%; cursor: pointer; }
+        .progress-bar::-moz-range-thumb { width: 15px; height: 15px; background: var(--primary-color); border-radius: 50%; cursor: pointer; }
+        .progress-time { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary-dark); margin-top: 0.25rem; }
+        .player-controls { display: flex; justify-content: space-around; align-items: center; }
+        .player-controls .ctrl-button { background: none; border: none; color: var(--text-dark); font-size: 1.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .player-controls .ctrl-button img { width: 60px; height: 60px; pointer-events: none; }
+        .play-pause { width: 64px; height: 64px; border-radius: 50%; background: var(--primary-color); }
+        .play-pause img { width: 28px; height: 28px; }
+        .like-button.liked #likeIcon { content: ""; }
+        .player-controls .like-button.liked { color: var(--primary-color); }
+
+        /* Other Styles (Modal, Playlist, etc.) */
+        .modal { position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: var(--surface-dark); margin: auto; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; position: relative; }
+        .modal-close { position: absolute; top: 10px; right: 15px; color: var(--text-secondary-dark); font-size: 28px; font-weight: bold; cursor: pointer; }
+        #premiumModalContent { text-align: center; }
+        .plan { border: 1px solid #404040; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; cursor: pointer; }
+        .plan:hover { border-color: var(--primary-color); }
+        .plan h3 { color: var(--primary-color); } .plan p { color: var(--text-secondary-dark); } .plan .price { font-size: 1.5rem; font-weight: bold; color: var(--text-dark); }
+        #paymentModalContent img { max-width: 100%; height: auto; margin: 1rem 0; border-radius: 8px; }
+        #paymentModalContent .upi-info { font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; }
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; cursor: pointer; background-color: var(--primary-color); color: white; padding: 10px 20px; border-radius: 5px; margin: 1rem 0; }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+        .btn { padding: 0.75rem 1.5rem; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .bottom-banner-ad { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 998; background-color: #111; text-align: center; }
+        .popup-ad-modal .modal-content { padding: 0; background: transparent; }
+        .hidden { display: none !important; }
+        .context-menu { position: fixed; z-index: 3000; background-color: var(--surface-dark); border-radius: 8px; padding: 0.5rem; box-shadow: 0 4px 15px var(--shadow-dark); display: none; }
+        .context-menu-item { padding: 0.75rem 1rem; cursor: pointer; white-space: nowrap; }
+        .context-menu-item:hover { background-color: #333; }
+        #playlistPageModal .modal-content { height: 80vh; display: flex; flex-direction: column; }
+        .playlist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .playlist-list { list-style: none; overflow-y: auto; flex-grow: 1; }
+        .playlist-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-radius: 5px; cursor: pointer; }
+        .playlist-item:hover { background-color: #333; }
+        .playlist-item-name { font-weight: bold; }
+        .playlist-item-count { font-size: 0.9rem; color: var(--text-secondary-dark); }
+        .playlist-songs-view .song-row { display: flex; align-items: center; padding: 0.5rem; cursor: pointer; border-radius: 5px; }
+        .playlist-songs-view .song-row:hover { background-color: #333; }
+        .playlist-songs-view .song-row img { width: 40px; height: 40px; border-radius: 4px; margin-right: 1rem; }
+        .playlist-songs-view .song-row-info { flex-grow: 1; }
+        .playlist-songs-view .song-row-title { font-weight: bold; }
+        .playlist-songs-view .song-row-artist { font-size: 0.8rem; color: var(--text-secondary-dark); }
+        .back-to-playlists { margin-bottom: 1rem; cursor: pointer; color: var(--primary-color); }
+        #quizModal { background-color: var(--background-dark); }
+        #quizModal .modal-content { background: transparent; box-shadow: none; width: 100%; height: 100%; max-width: none; border-radius: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .quiz-view { width: 100%; max-width: 500px; padding: 1rem; }
+        .quiz-title { font-size: 2.5rem; color: var(--primary-color); margin-bottom: 2rem; }
+        .quiz-question { font-size: 1.5rem; margin-bottom: 2rem; }
+        .quiz-answers { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        .quiz-answer-btn { padding: 1rem; font-size: 1.1rem; background-color: var(--surface-dark); color: var(--text-dark); border: 2px solid #444; border-radius: 8px; cursor: pointer; transition: transform 0.2s, background-color 0.2s; }
+        .quiz-answer-btn:hover { transform: scale(1.05); }
+        .quiz-answer-btn.correct { background-color: #2E7D32; border-color: #4CAF50; }
+        .quiz-answer-btn.wrong { background-color: #C62828; border-color: #F44336; }
+        .quiz-answer-btn:disabled { cursor: not-allowed; }
+        .quiz-score, .quiz-progress-text { font-size: 1.2rem; margin-bottom: 1rem; }
+        #quizTimerBar { width: 100%; height: 8px; background-color: #444; border-radius: 4px; overflow: hidden; margin-bottom: 2rem; }
+        #quizTimerProgress { width: 100%; height: 100%; background-color: var(--primary-color); transition: width 0.1s linear; }
+
+        @media (min-width: 768px) {
+            .song-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+            .song-grid.horizontal-scroll .song-item { flex: 0 0 180px; width: 180px; }
+            .bottom-sheet-player { width: 400px; left: 50%; transform: translate(-50%, 100%); border-radius: 20px; }
+            .bottom-sheet-player.active { transform: translate(-50%, 0); }
+        }
+.bottom-banner-ad {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100;
+  background: #333;
+  z-index: 999;
+  text-align: center;
+}
+.bottom-banner-ad .banner-ad-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 90px; /* match your ad height */
+}
+body { padding-bottom: 90px; } /* prevents content behind banner */
+      
+.player-blur-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* peeche dikhne ke liye */
+  overflow: hidden;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+
+.player-blur-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(30px) brightness(0.6) saturate(1.2);
+  transform: scale(1.2); /* zoom thoda blur edge ke liye */
+}
+.player-controls .like-button.liked { 
+  color: var(--primary-color); 
+}
+
+.mini-player {
+  position: fixed;
+  bottom: 60px; /* ads ya nav bar ke upar */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 95%;
+  background: var(--surface-dark);
+  border-radius: 12px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  box-shadow: 0 -2px 15px rgba(0,0,0,0.6);
+  z-index: 1500;
+}
+.mini-player.show {
+  display: flex;
+}
+.mini-thumb {
+  width: 45px;
+  height: 45px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.mini-info {
+  flex: 1;
+  margin-left: 10px;
+  overflow: hidden;
+}
+.mini-info p {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-title { font-weight: bold; }
+.mini-controls button {
+  background: none;
+  border: none;
+  margin-left: 10px;
+  cursor: pointer;
+}
+.mini-controls img {
+  width: 22px;
+  height: 22px;
+}
+    </style>
+</head>
+<body>
+    
+    <!-- Entry Loader Screen -->
+    <div class="loader-wrapper" id="loaderWrapper">
+        <div class="loader-logo">MusicX</div>
+        <p class="loader-text" id="loaderText">Tap anywhere to start</p>
+    </div>
+
+    <!-- ========= USER PANEL ========= -->
+    <div class="app-container" id="appContainer">
+        <header class="top-bar">
+            <div class="search-bar">
+                <span class="search-icon"><img src="./assets/icons/search.png" alt="Search" /></span>
+                <input type="text" id="searchInput" placeholder="Search for songs, artists...">
+            </div>
+            <button class="icon-button" id="quizButton" aria-label="Play Song Quiz">
+                <img src="./assets/icons/quiz.png" alt="Quiz" />
+            </button>
+            <button class="icon-button" id="playlistButton" aria-label="Open Playlists">
+                <img src="./assets/icons/playlist.png" alt="Playlists" />
+            </button>
+            <button class="theme-switcher" id="themeSwitcher" aria-label="Toggle Dark/Light Mode">
+                <img id="themeIcon" src="./assets/icons/sun.png" alt="Theme" />
+            </button>
+        </header>
+
+        <div id="premiumStatusDisplay" class="premium-status-display hidden"></div>
+
+        <main>
+            <!-- ⚙️ PROMOTIONAL CHANNEL SLIDER FEATURE: HTML Placeholder ⚙️ -->
+            <div class="promo-channel-container hidden" id="promoChannelContainer">
+                <div class="promo-slides-wrapper" id="promoSlidesWrapper">
+                    <!-- Slides will be injected by JS -->
+                </div>
+                <div class="promo-dots-container" id="promoDotsContainer">
+                    <!-- Dots will be injected by JS -->
+                </div>
+            </div>
+
+            <!-- Legacy Promotional  (will be hidden if new slider is active) -->
+            <div class="banner-slider" id="bannerSlider">
+                <div class="banner-slides" id="bannerSlides"></div>
+            </div>
+            
+            <section class="song-section hidden" id="recentlyPlayedContainer">
+                <h2 class="section-title">Recently Played</h2>
+                <div class="song-grid horizontal-scroll" id="recentlyPlayedGrid"></div>
+            </section>
+            
+            <section class="song-section hidden" id="mostPlayedContainer">
+                <h2 class="section-title">Most Played</h2>
+                <div class="song-grid horizontal-scroll" id="mostPlayedGrid"></div>
+            </section>
+
+            <div id="songSectionsContainer"></div>
+        </main>
+    </div>
+
+    <!-- Rest of the HTML is identical... -->
+    <div class="bottom-sheet-player" id="bottomSheetPlayer">
+        <!-- Blur background for dynamic thumbnail -->
+<div class="player-blur-bg">
+  <img id="bgCover" src="./assets/icons/default.jpg" alt="Background">
+</div>
+        <div id="playerHandle" style="width: 40px; height: 5px; background: #555; border-radius: 3px; margin: -1rem auto 1rem; cursor: pointer;"></div>
+        <img src="" alt="Album Art" class="player-album-art" id="playerAlbumArt">
+        <div class="player-song-info">
+            <p class="player-song-title" id="playerSongTitle">Not Playing</p>
+            <p class="player-song-artist" id="playerSongArtist">--</p>
+        </div>
+        <div class="player-progress">
+            <input type="range" class="progress-bar" id="progressBar" value="0" step="1">
+            <div class="progress-time">
+                <span id="currentTime">0:00</span>
+                <span id="totalDuration">0:00</span>
+            </div>
+        </div>
+        <div class="player-controls">
+            <button class="ctrl-button" id="prevButton"><img src="./assets/icons/prev.png" alt="Previous" /></button>
+            <button class="ctrl-button like-button" id="likeButton"><img id="likeIcon" src="./assets/icons/heart.png" alt="Like" /></button>
+            <button class="ctrl-button play-pause" id="playPauseButton"><img id="playPauseIcon" src="./assets/icons/play.png" alt="Play/Pause" /></button>
+            <button class="ctrl-button" id="downloadButton"><img src="./assets/icons/download.png" alt="Download" /></button>
+            <button class="ctrl-button" id="nextButton"><img src="./assets/icons/next.png" alt="Next" /></button>
+        </div>
+    </div>
+    <div id="premiumModal" class="modal"><div class="modal-content" id="premiumModalContent"><span class="modal-close" data-modal="premium">&times;</span><h2>Go Premium</h2><p>Unlock all features like offline downloads and ad-free listening.</p><div id="plansContainer" style="margin-top: 20px;"></div></div></div>
+    <div id="paymentModal" class="modal"><div class="modal-content" id="paymentModalContent"><span class="modal-close" data-modal="payment">&times;</span><h2 id="paymentPlanTitle"></h2><p>Scan the QR code or use the UPI ID to pay.</p><img id="paymentQrCode" src="" alt="QR Code"><div class="upi-info" id="paymentUpiId"></div><p>After payment, upload a screenshot of the transaction.</p><div class="upload-btn-wrapper"><button class="btn">Upload Screenshot</button><input type="file" id="screenshotInput" accept="image/*"/></div><p id="fileName" style="margin-bottom: 1rem; color: var(--text-secondary-dark)"></p><button id="submitPaymentButton" class="btn btn-primary" disabled>Submit for Approval</button></div></div>
+    <div class="bottom-banner-ad" id="bottomAd"><div style="background:#333; color:white; height:50px; display:flex; align-items:center; justify-content:center;"> Ad Placeholder</div></div>
+    <div id="popupAdModal" class="modal popup-ad-modal"><div class="modal-content"><div style="background:white; color:black; padding:20px; border-radius: 8px; text-align:center;"><h3>Advertisement</h3><p>This will close in 5 seconds...</p></div></div></div>
+    <div id="songContextMenu" class="context-menu"><div class="context-menu-item" id="addToPlaylistAction">Add to Playlist</div></div>
+    <div id="playlistPageModal" class="modal"><div class="modal-content"><span class="modal-close" data-modal="playlistPage">&times;</span><div id="playlistListView"><div class="playlist-header"><h2>My Playlists</h2><button id="createPlaylistBtn" class="btn btn-primary">+</button></div><ul id="playlistList" class="playlist-list"></ul></div><div id="playlistSongsView" class="hidden"><p class="back-to-playlists" id="backToPlaylists">&larr; Back to Playlists</p><h2 id="playlistSongsTitle"></h2><div id="playlistSongsList" class="playlist-list"></div></div></div></div>
+    <div id="addToPlaylistModal" class="modal"><div class="modal-content"><span class="modal-close" data-modal="addToPlaylist">&times;</span><h2>Add to...</h2><ul id="selectPlaylistList" class="playlist-list" style="margin-bottom: 1rem;"></ul><button id="createNewPlaylistFromModalBtn" class="btn">Create New Playlist</button></div></div>
+    <div id="quizModal" class="modal"><div class="modal-content"><span class="modal-close" data-modal="quizModal">&times;</span><div id="quizStartView" class="quiz-view"><h2 class="quiz-title">Song Quiz</h2><p style="color:var(--text-secondary-dark); margin-bottom: 2rem;">Guess the song from a short clip. Can you get all 5 right?</p><button id="startQuizBtn" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.2rem;">Start Quiz</button></div><div id="quizGameView" class="quiz-view hidden"><p class="quiz-score" id="quizScoreText">Score: 0</p><div id="quizTimerBar"><div id="quizTimerProgress"></div></div><h3 class="quiz-question" id="quizQuestionText">Guess the Song!</h3><div class="quiz-answers" id="quizAnswersContainer"></div></div><div id="quizEndView" class="quiz-view hidden"><h2 class="quiz-title">Quiz Over!</h2><p class="quiz-score" id="quizFinalScoreText">Your final score is: 3 / 5</p><button id="playAgainBtn" class="btn btn-primary" style="margin-top: 2rem;">Play Again</button></div></div></div>
+    <!-- Mini Player (hidden by default) -->
+<div class="mini-player" id="miniPlayer">
+  <img id="miniThumb" class="mini-thumb" src="default.jpg" alt="Album">
+  <div class="mini-info">
+    <p id="miniTitle">Song Title</p>
+    <p id="miniArtist">Artist</p>
+  </div>
+  <div class="mini-controls">
+    <button id="miniLike"><img src="./assets/icons/heart.png" alt="Like"></button>
+    <button id="miniPlayPause"><img src="./assets/icons/play.png" alt="Play"></button>
+  </div>
+</div>
+     <audio id="quizAudioPlayer"></audio>
+    <audio id="audioPlayer"></audio>
+
+<script type="module">
+    // #################### FIREBASE IMPORTS ####################
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // #################### CONFIG ####################
+    const firebaseConfig = {
+      apiKey: "AIzaSyDyBowb42YUx9J9_39SdPCYfjLYf3dDq08",
+      authDomain: "music-second.firebaseapp.com",
+      databaseURL: "https://music-second-default-rtdb.firebaseio.com",
+      projectId: "music-second",
+      storageBucket: "music-second.appspot.com",
+      messagingSenderId: "718442961562",
+      appId: "1:718442961562:web:a8a4d535f1370c38d91d23"
+    };
+
+    const APP_VERSION = "1.2.0-firebase";
+    console.log(`MusicX User Panel Version: ${APP_VERSION}`);
+
+    // Initialize Firebase
+    const fbApp = initializeApp(firebaseConfig);
+    const db = getDatabase(fbApp);
+    
+    // #################### DOM ELEMENTS ####################
+
+    const dom = {
+        loaderWrapper: document.getElementById('loaderWrapper'),
+        appContainer: document.getElementById('appContainer'),
+        themeSwitcher: document.getElementById('themeSwitcher'),
+        searchInput: document.getElementById('searchInput'),
+        bannerSlides: document.getElementById('bannerSlides'), // Legacy
+        bannerSlider: document.getElementById('bannerSlider'), // Legacy
+        songSectionsContainer: document.getElementById('songSectionsContainer'),
+        bottomSheetPlayer: document.getElementById('bottomSheetPlayer'),
+        playerAlbumArt: document.getElementById('playerAlbumArt'),
+        bgCover: document.getElementById('bgCover'), 
+        playerSongTitle: document.getElementById('playerSongTitle'),
+        playerSongArtist: document.getElementById('playerSongArtist'),
+        progressBar: document.getElementById('progressBar'),
+        currentTime: document.getElementById('currentTime'),
+        totalDuration: document.getElementById('totalDuration'),
+        playPauseButton: document.getElementById('playPauseButton'),
+        prevButton: document.getElementById('prevButton'),
+        nextButton: document.getElementById('nextButton'),
+        likeButton: document.getElementById('likeButton'),
+        downloadButton: document.getElementById('downloadButton'),
+        audioPlayer: document.getElementById('audioPlayer'),
+        modals: { premium: document.getElementById('premiumModal'), payment: document.getElementById('paymentModal'), popupAd: document.getElementById('popupAdModal'), playlistPage: document.getElementById('playlistPageModal'), addToPlaylist: document.getElementById('addToPlaylistModal'), quiz: document.getElementById('quizModal'), },
+        plansContainer: document.getElementById('plansContainer'),
+        paymentPlanTitle: document.getElementById('paymentPlanTitle'),
+        paymentQrCode: document.getElementById('paymentQrCode'),
+        paymentUpiId: document.getElementById('paymentUpiId'),
+        screenshotInput: document.getElementById('screenshotInput'),
+        fileName: document.getElementById('fileName'),
+        submitPaymentButton: document.getElementById('submitPaymentButton'),
+        bottomAd: document.getElementById('bottomAd'),
+        playerHandle: document.getElementById('playerHandle'),
+        playlistButton: document.getElementById('playlistButton'),
+        songContextMenu: document.getElementById('songContextMenu'),
+        addToPlaylistAction: document.getElementById('addToPlaylistAction'),
+        playlistListView: document.getElementById('playlistListView'),
+        playlistSongsView: document.getElementById('playlistSongsView'),
+        playlistList: document.getElementById('playlistList'),
+        createPlaylistBtn: document.getElementById('createPlaylistBtn'),
+        backToPlaylists: document.getElementById('backToPlaylists'),
+        playlistSongsTitle: document.getElementById('playlistSongsTitle'),
+        playlistSongsList: document.getElementById('playlistSongsList'),
+        selectPlaylistList: document.getElementById('selectPlaylistList'),
+        createNewPlaylistFromModalBtn: document.getElementById('createNewPlaylistFromModalBtn'),
+        recentlyPlayedContainer: document.getElementById('recentlyPlayedContainer'),
+        recentlyPlayedGrid: document.getElementById('recentlyPlayedGrid'),
+        mostPlayedContainer: document.getElementById('mostPlayedContainer'),
+        mostPlayedGrid: document.getElementById('mostPlayedGrid'),
+        quizButton: document.getElementById('quizButton'),
+        quizAudioPlayer: document.getElementById('quizAudioPlayer'),
+        quizStartView: document.getElementById('quizStartView'),
+        quizGameView: document.getElementById('quizGameView'),
+        quizEndView: document.getElementById('quizEndView'),
+        startQuizBtn: document.getElementById('startQuizBtn'),
+        quizScoreText: document.getElementById('quizScoreText'),
+        quizTimerProgress: document.getElementById('quizTimerProgress'),
+        quizQuestionText: document.getElementById('quizQuestionText'),
+        quizAnswersContainer: document.getElementById('quizAnswersContainer'),
+        quizFinalScoreText: document.getElementById('quizFinalScoreText'),
+        playAgainBtn: document.getElementById('playAgainBtn'),
+        premiumStatusDisplay: document.getElementById('premiumStatusDisplay'),
+        promoChannelContainer: document.getElementById('promoChannelContainer'),
+        promoSlidesWrapper: document.getElementById('promoSlidesWrapper'),
+        promoDotsContainer: document.getElementById('promoDotsContainer'),
+    };
+    
+    // #################### STATE ####################
+    
+    let appState = {
+        songs: [],
+        currentUser: null,
+        userId: null,
+        adminSettings: null,
+        currentSong: null,
+        playlist: [],
+        currentSongIndex: -1,
+        isAudioContextUnlocked: false,
+        pendingScreenshot: null,
+        selectedPlan: null,
+        userPlaylists: [],
+        contextMenuSongId: null,
+        longPressTimer: null,
+        promos: [],
+        quiz: { isActive: false, questions: [], currentQuestionIndex: 0, sessionScore: 0, timer: null, wasPlayerPlaying: false, }
+    };
+
+    // #################### UI FUNCTIONS ####################
+
+    const UI = {
+        renderSongs(songsToRender) {
+            const sections = {};
+            if(songsToRender && Array.isArray(songsToRender)) {
+                songsToRender.forEach(song => { if (!sections[song.section]) { sections[song.section] = []; } sections[song.section].push(song); });
+            }
+            dom.songSectionsContainer.innerHTML = '';
+            for (const sectionTitle in sections) {
+                const sectionEl = document.createElement('section');
+                sectionEl.className = 'song-section';
+                const titleEl = document.createElement('h2');
+                titleEl.className = 'section-title';
+                titleEl.textContent = sectionTitle;
+                sectionEl.appendChild(titleEl);
+                const gridEl = document.createElement('div');
+                gridEl.className = 'song-grid';
+                sections[sectionTitle].forEach(song => { gridEl.appendChild(this.createSongItem(song, sections[sectionTitle])); });
+                sectionEl.appendChild(gridEl);
+                dom.songSectionsContainer.appendChild(sectionEl);
+            }
+        },
+        createSongItem(song, playlist) {
+            const songItem = document.createElement('div');
+            songItem.className = 'song-item';
+            songItem.dataset.songId = song.id;
+            songItem.innerHTML = `<img src="${song.banner}" alt="${song.title}" class="song-item-banner"><div class="song-item-info"><p class="song-item-title">${song.title}</p><p class="song-item-artist">${song.artist}</p></div>`;
+            songItem.addEventListener('click', () => { Player.startPlaylist(playlist, song.id); });
+            songItem.addEventListener('contextmenu', (e) => { e.preventDefault(); PlaylistManager.showContextMenu(e.pageX, e.pageY, song.id); });
+            songItem.addEventListener('touchstart', (e) => { appState.longPressTimer = setTimeout(() => { const touch = e.touches[0]; PlaylistManager.showContextMenu(touch.pageX, touch.pageY, song.id); }, 500); });
+            songItem.addEventListener('touchend', () => clearTimeout(appState.longPressTimer));
+            songItem.addEventListener('touchmove', () => clearTimeout(appState.longPressTimer));
+            return songItem;
+        },
+        renderRecentlyPlayed() {
+            if (!appState.currentUser) return;
+            const recentlyPlayedIds = appState.currentUser.recentlyPlayed || []; if (recentlyPlayedIds.length === 0) { dom.recentlyPlayedContainer.classList.add('hidden'); return; }
+            dom.recentlyPlayedGrid.innerHTML = ''; const songMap = new Map(appState.songs.map(s => [s.id, s])); const recentSongs = recentlyPlayedIds.map(id => songMap.get(id)).filter(Boolean);
+            recentSongs.forEach(song => { dom.recentlyPlayedGrid.appendChild(this.createSongItem(song, recentSongs)); }); dom.recentlyPlayedContainer.classList.remove('hidden');
+        },
+        renderMostPlayed() {
+            if (!appState.currentUser) return;
+            const playCounts = appState.currentUser.playCounts || {}; const sortedSongIds = Object.keys(playCounts).sort((a, b) => playCounts[b] - playCounts[a]); if (sortedSongIds.length === 0) { dom.mostPlayedContainer.classList.add('hidden'); return; }
+            dom.mostPlayedGrid.innerHTML = ''; const songMap = new Map(appState.songs.map(s => [s.id, s])); const mostPlayedSongs = sortedSongIds.map(id => songMap.get(id)).filter(Boolean);
+            mostPlayedSongs.forEach(song => { dom.mostPlayedGrid.appendChild(this.createSongItem(song, mostPlayedSongs)); }); dom.mostPlayedContainer.classList.remove('hidden');
+        },
+        renders(banners) {
+            if(!banners || !Array.isArray(banners) || banners.length === 0) { dom.bannerSlider.classList.add('hidden'); return; }
+            dom.bannerSlider.classList.remove('hidden');
+            dom.bannerSlides.innerHTML = banners.map(banner => `<div class="banner-slide"><a href="${banner.link}"><img src="${banner.imageUrl}" alt="Promotional "></a></div>`).join('');
+            if (banners.length > 1) { setInterval(() => { const slides = dom.bannerSlides; if (slides.children.length === 0) return; const firstSlide = slides.children[0]; slides.style.transition = 'transform 0.5s ease-in-out'; slides.style.transform = `translateX(-${firstSlide.clientWidth}px)`; setTimeout(() => { slides.appendChild(firstSlide); slides.style.transition = 'none'; slides.style.transform = 'translateX(0)'; }, 500); }, 3000); }
+        },
+        setTheme(theme) {
+            document.body.classList.toggle('light-mode', theme === 'light');
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.src = theme === 'light' ? './assets/icons/moon.png' : './assets/icons/sun.png';
+            localStorage.setItem('theme', theme);
+        },
+        togglePlayer(show) {
+            if (show) {
+                const playerHeight = dom.bottomSheetPlayer.offsetHeight > 0 ? dom.bottomSheetPlayer.offsetHeight : 280; document.documentElement.style.setProperty('--bottom-player-height', `${playerHeight}px`); dom.bottomSheetPlayer.classList.add('active');
+                miniPlayer.classList.remove('show');
+            } else {
+                document.documentElement.style.setProperty('--bottom-player-height', `0px`); dom.bottomSheetPlayer.classList.remove('active');
+                if (appState.currentSong) { miniPlayer.classList.add('show'); }
+            }
+        },
+        updatePlayer(song) {
+            dom.playerAlbumArt.src = song.banner;
+            dom.playerSongTitle.textContent = song.title;
+            dom.playerSongArtist.textContent = song.artist;
+            if (dom.bgCover) {
+        dom.bgCover.src = song.banner;
+    }
+            miniThumb.src = song.banner;
+            miniTitle.textContent = song.title;
+            miniArtist.textContent = song.artist;
+            const liked = appState.currentUser.likes && appState.currentUser.likes[song.id];
+            dom.likeButton.classList.toggle('liked', !!liked);
+            const likeIcon = document.getElementById('likeIcon');
+            if (likeIcon) likeIcon.src = liked ? './assets/icons/heart-filled.png' : './assets/icons/heart.png';
+            const miniLikeIcon = miniLikeBtn.querySelector('img');
+            if (miniLikeIcon) miniLikeIcon.src = liked ? './assets/icons/heart-filled.png' : './assets/icons/heart.png';
+        },
+        formatTime(seconds) { const min = Math.floor(seconds / 60); const sec = Math.floor(seconds % 60); return `${min}:${sec < 10 ? '0' : ''}${sec}`; },
+        showModal(modalName) { if(dom.modals[modalName]) dom.modals[modalName].classList.add('active'); },
+        hideModal(modalName) { if(dom.modals[modalName]) dom.modals[modalName].classList.remove('active'); },
+        showAd(type) { if (appState.currentUser && appState.currentUser.isPremium) return; if (type === 'popup') { this.showModal('popupAd'); setTimeout(() => this.hideModal('popupAd'), 5000); } else if (type === 'banner') { dom.bottomAd.classList.remove('hidden'); } },
+        hideAds() { dom.bottomAd.classList.add('hidden'); },
+        renderPlans() { if(!appState.adminSettings) return; const { monthlyPrice, yearlyPrice } = appState.adminSettings; dom.plansContainer.innerHTML = `<div class="plan" data-plan="Monthly" data-price="${monthlyPrice}"><h3>Monthly</h3><p class="price">₹${monthlyPrice || 'N/A'}</p><p>Get unlimited access for 1 month.</p></div><div class="plan" data-plan="Yearly" data-price="${yearlyPrice}"><h3>Yearly</h3><p class="price">₹${yearlyPrice || 'N/A'}</p><p>Save money with a yearly plan.</p></div>`; }
+    };
+    
+    // ⚙️ PROMOTIONAL CHANNEL SLIDER FEATURE: Full JS Logic ⚙️
+    const PromoSlider = {
+        currentIndex: 0,
+        touchStartX: 0,
+        touchEndX: 0,
+        autoRotateTimer: null,
+        
+        init() {
+            if (!appState.promos || appState.promos.length === 0) {
+                dom.promoChannelContainer.classList.add('hidden');
+                dom.bannerSlider.classList.add('hidden');
+                return;
+            }
+            
+            dom.bannerSlider.classList.add('hidden');
+            dom.promoChannelContainer.classList.remove('hidden');
+            this.render();
+        },
+        
+        render() {
+            const sorteds = [...appState.promos].sort((a, b) => a.order - b.order);
+            
+            dom.promoSlidesWrapper.innerHTML = sorteds.map(banner => `
+                <div class="promo-slide" style="background-image: url('${banner.image}');" 
+                     data-action-type="${banner.actionType}" 
+                     data-action-target="${banner.actionTarget}">
+                    <div class="promo-slide-content">
+                        <h3 class="promo-slide-title">${banner.title || ''}</h3>
+                        <p class="promo-slide-subtitle">${banner.subtitle || ''}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            dom.promoDotsContainer.innerHTML = sorteds.map((_, index) => 
+                `<div class="promo-dot" data-index="${index}"></div>`
+            ).join('');
+            
+            this.addEventListeners();
+            this.update();
+            this.startAutoRotate();
+        },
+        
+        addEventListeners() {
+            dom.promoSlidesWrapper.addEventListener('click', e => {
+                const slide = e.target.closest('.promo-slide');
+                if (slide) {
+                    const { actionType, actionTarget } = slide.dataset;
+                    this.handleAction(actionType, actionTarget);
+                }
+            });
+
+            dom.promoDotsContainer.addEventListener('click', e => {
+                const dot = e.target.closest('.promo-dot');
+                if (dot) {
+                    this.goTo(parseInt(dot.dataset.index));
+                }
+            });
+            
+            dom.promoChannelContainer.addEventListener('mouseenter', () => this.stopAutoRotate());
+            dom.promoChannelContainer.addEventListener('mouseleave', () => this.startAutoRotate());
+            dom.promoChannelContainer.addEventListener('touchstart', e => { this.touchStartX = e.changedTouches[0].screenX; this.stopAutoRotate(); }, { passive: true });
+            dom.promoChannelContainer.addEventListener('touchend', e => { this.touchEndX = e.changedTouches[0].screenX; this.handleSwipe(); this.startAutoRotate(); });
+        },
+
+        handleAction(type, target) {
+            if (!type || !target) return;
+            switch(type) {
+                case 'link':
+                    window.open(target, '_blank');
+                    break;
+                case 'song':
+                    const song = appState.songs.find(s => s.id === target);
+                    if (song) {
+                        const songSection = appState.songs.filter(s => s.section === song.section);
+                        Player.startPlaylist(songSection, song.id);
+                    } else { alert('Sorry, this song is not available.'); }
+                    break;
+                case 'playlist':
+                    const playlist = appState.userPlaylists.find(p => p.id === target);
+                    if (playlist && Object.keys(playlist.songs || {}).length > 0) {
+                        const songMap = new Map(appState.songs.map(s => [s.id, s]));
+                        const songsInPlaylist = Object.keys(playlist.songs).map(id => songMap.get(id)).filter(Boolean);
+                        Player.startPlaylist(songsInPlaylist, songsInPlaylist[0].id);
+                    } else { alert('Sorry, this playlist is not available or is empty.'); }
+                    break;
+            }
+        },
+
+        handleSwipe() {
+            if (this.touchEndX < this.touchStartX - 50) this.next(); // Swiped left
+            if (this.touchEndX > this.touchStartX + 50) this.prev(); // Swiped right
+        },
+        
+        update() {
+            const slideWidth = dom.promoSlidesWrapper.clientWidth;
+            dom.promoSlidesWrapper.style.transform = `translateX(-${this.currentIndex * slideWidth}px)`;
+            
+            dom.promoDotsContainer.querySelectorAll('.promo-dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === this.currentIndex);
+            });
+        },
+        goTo(index) { this.currentIndex = index; this.update(); },
+        next() { const slideCount = dom.promoSlidesWrapper.children.length; this.currentIndex = (this.currentIndex + 1) % slideCount; this.update(); },
+        prev() { const slideCount = dom.promoSlidesWrapper.children.length; this.currentIndex = (this.currentIndex - 1 + slideCount) % slideCount; this.update(); },
+        startAutoRotate() { this.stopAutoRotate(); this.autoRotateTimer = setInterval(() => this.next(), 5000); },
+        stopAutoRotate() { clearInterval(this.autoRotateTimer); }
+    };
+
+    const PlaylistManager = {
+        init() { this.addEventListeners(); }, 
+        addEventListeners() { 
+            dom.playlistButton.addEventListener('click', this.openPlaylistPage); 
+            dom.createPlaylistBtn.addEventListener('click', this.createPlaylist); 
+            dom.backToPlaylists.addEventListener('click', this.showPlaylistListView); 
+            dom.addToPlaylistAction.addEventListener('click', () => { dom.songContextMenu.style.display = 'none'; this.openAddToPlaylistModal(); }); 
+            dom.createNewPlaylistFromModalBtn.addEventListener('click', () => { UI.hideModal('addToPlaylist'); this.createPlaylist(true); }); 
+            document.addEventListener('click', (e) => { if (!dom.songContextMenu.contains(e.target)) { dom.songContextMenu.style.display = 'none'; } }); 
+        },
+        openPlaylistPage() { PlaylistManager.renderPlaylistList(); PlaylistManager.showPlaylistListView(); UI.showModal('playlistPage'); },
+        renderPlaylistList() {
+            dom.playlistList.innerHTML = ''; 
+            if (appState.userPlaylists.length === 0) { dom.playlistList.innerHTML = '<p style="text-align:center; color: var(--text-secondary-dark);">No playlists yet. Create one!</p>'; return; }
+            appState.userPlaylists.forEach(p => { 
+                const songCount = p.songs ? Object.keys(p.songs).length : 0;
+                const li = document.createElement('li'); li.className = 'playlist-item'; li.innerHTML = `<div><div class="playlist-item-name">${p.name}</div><div class="playlist-item-count">${songCount} songs</div></div><div><button class="icon-button" data-action="rename" style="width:30px; height:30px; font-size:14px;">✎</button><button class="icon-button" data-action="delete" style="width:30px; height:30px; font-size:14px;">🗑</button></div>`; 
+                li.querySelector('.playlist-item-name').addEventListener('click', () => this.viewPlaylistSongs(p.id)); 
+                li.querySelector('[data-action="rename"]').addEventListener('click', (e) => { e.stopPropagation(); this.renamePlaylist(p.id); }); 
+                li.querySelector('[data-action="delete"]').addEventListener('click', (e) => { e.stopPropagation(); this.deletePlaylist(p.id); }); 
+                dom.playlistList.appendChild(li); 
+            });
+        },
+        viewPlaylistSongs(playlistId) {
+            const playlist = appState.userPlaylists.find(p => p.id === playlistId); if (!playlist) return;
+            dom.playlistSongsTitle.textContent = playlist.name;
+            const songIds = playlist.songs ? Object.keys(playlist.songs) : [];
+            const songsInPlaylist = songIds.map(songId => appState.songs.find(s => s.id === songId)).filter(Boolean);
+            dom.playlistSongsList.innerHTML = '';
+            if (songsInPlaylist.length === 0) { dom.playlistSongsList.innerHTML = '<p style="text-align:center; color: var(--text-secondary-dark);">This playlist is empty.</p>'; } 
+            else { songsInPlaylist.forEach((song) => { const songEl = document.createElement('div'); songEl.className = 'song-row'; songEl.innerHTML = `<img src="${song.banner}" alt="${song.title}"><div class="song-row-info"><p class="song-row-title">${song.title}</p><p class="song-row-artist">${song.artist}</p></div>`; songEl.addEventListener('click', () => { UI.hideModal('playlistPage'); Player.startPlaylist(songsInPlaylist, song.id); }); dom.playlistSongsList.appendChild(songEl); }); }
+            this.showPlaylistSongsView();
+        },
+        showPlaylistListView() { dom.playlistListView.classList.remove('hidden'); dom.playlistSongsView.classList.add('hidden'); },
+        showPlaylistSongsView() { dom.playlistListView.classList.add('hidden'); dom.playlistSongsView.classList.remove('hidden'); },
+        createPlaylist(addCurrentSong = false) {
+            const name = prompt("Enter new playlist name:", "My Awesome Playlist");
+            if (name) {
+                const newPlaylist = { name: name, songs: {}, createdBy: appState.userId, createdAt: new Date().toISOString() };
+                if(addCurrentSong && appState.contextMenuSongId) { newPlaylist.songs[appState.contextMenuSongId] = true; }
+                const newPlaylistRef = push(ref(db, `user_playlists/${appState.userId}`));
+                set(newPlaylistRef, newPlaylist);
+                if (addCurrentSong) { alert(`Playlist "${name}" created and song added!`); }
+            }
+        },
+        renamePlaylist(playlistId) {
+            const playlist = appState.userPlaylists.find(p => p.id === playlistId); if (!playlist) return;
+            const newName = prompt("Enter new name for playlist:", playlist.name);
+            if (newName && newName !== playlist.name) { update(ref(db, `user_playlists/${appState.userId}/${playlistId}`), { name: newName }); }
+        },
+        deletePlaylist(playlistId) {
+            if (confirm("Are you sure you want to delete this playlist?")) { remove(ref(db, `user_playlists/${appState.userId}/${playlistId}`)); }
+        },
+        showContextMenu(x, y, songId) { appState.contextMenuSongId = songId; dom.songContextMenu.style.display = 'block'; dom.songContextMenu.style.left = `${x}px`; dom.songContextMenu.style.top = `${y}px`; },
+        openAddToPlaylistModal() {
+            dom.selectPlaylistList.innerHTML = '';
+            appState.userPlaylists.forEach(p => { const li = document.createElement('li'); li.className = 'playlist-item'; li.textContent = p.name; li.addEventListener('click', () => this.addSongToPlaylist(p.id)); dom.selectPlaylistList.appendChild(li); });
+            UI.showModal('addToPlaylist');
+        },
+        addSongToPlaylist(playlistId) {
+            const songId = appState.contextMenuSongId; if (!playlistId || !songId) return;
+            set(ref(db, `user_playlists/${appState.userId}/${playlistId}/songs/${songId}`), true)
+              .then(() => alert('Song added to playlist!'))
+              .catch(err => console.error(err));
+            UI.hideModal('addToPlaylist');
+            appState.contextMenuSongId = null;
+        }
+    };
+    
+    const Player = {
+        init() { dom.audioPlayer.addEventListener('timeupdate', this.onTimeUpdate); dom.audioPlayer.addEventListener('loadedmetadata', this.onLoadedMetadata); dom.audioPlayer.addEventListener('ended', this.playNext); dom.audioPlayer.addEventListener('play', () => dom.playerAlbumArt.classList.add('playing')); dom.audioPlayer.addEventListener('pause', () => dom.playerAlbumArt.classList.remove('playing')); dom.playPauseButton.addEventListener('click', this.togglePlayPause); dom.progressBar.addEventListener('input', this.seek); dom.prevButton.addEventListener('click', this.playPrev); dom.nextButton.addEventListener('click', this.playNext); dom.likeButton.addEventListener('click', this.handleLike); dom.downloadButton.addEventListener('click', this.handleDownload); }, 
+        startPlaylist(playlist, startSongId) { appState.playlist = playlist; const startIndex = playlist.findIndex(s => s.id === startSongId); if (startIndex !== -1) { appState.currentSongIndex = startIndex; this.loadSong(playlist[startIndex]); } }, 
+        loadSong(song) { appState.currentSong = song; UI.updatePlayer(song); dom.audioPlayer.src = song.audio; this.play(); UI.togglePlayer(true); UI.showAd('popup'); PlayTracker.track(song.id); },
+        play() { if (!appState.isAudioContextUnlocked) return; dom.audioPlayer.play(); setPlayPauseIcon(true); },
+        pause() { dom.audioPlayer.pause(); setPlayPauseIcon(false); },
+        togglePlayPause() { if (!appState.currentSong) return; if (dom.audioPlayer.paused) { Player.play(); } else { Player.pause(); } },
+        playNext() { if (appState.playlist.length === 0) return; appState.currentSongIndex = (appState.currentSongIndex + 1) % appState.playlist.length; Player.loadSong(appState.playlist[appState.currentSongIndex]); },
+        playPrev() { if (appState.playlist.length === 0) return; appState.currentSongIndex = (appState.currentSongIndex - 1 + appState.playlist.length) % appState.playlist.length; Player.loadSong(appState.playlist[appState.currentSongIndex]); },
+        seek(e) { if (!dom.audioPlayer.duration) return; dom.audioPlayer.currentTime = (e.target.value / 100) * dom.audioPlayer.duration; },
+        onTimeUpdate() { const { currentTime, duration } = dom.audioPlayer; if (duration) { dom.progressBar.value = (currentTime / duration) * 100; dom.currentTime.textContent = UI.formatTime(currentTime); } },
+        onLoadedMetadata() { dom.totalDuration.textContent = UI.formatTime(dom.audioPlayer.duration); },
+        handleGatedFeature(callback) { if (appState.currentUser && appState.currentUser.isPremium) { callback(); } else { UI.showModal('premium'); } },
+        handleLike() {
+            if (!appState.currentSong) return;
+            Player.handleGatedFeature(() => {
+                const songId = appState.currentSong.id;
+                const userLikes = appState.currentUser.likes || {};
+                const isLiked = userLikes[songId];
+                if (isLiked) {
+                    remove(ref(db, `users/${appState.userId}/likes/${songId}`));
+                } else {
+                    set(ref(db, `users/${appState.userId}/likes/${songId}`), true);
+                }
+            });
+        },
+        handleDownload() { if (!appState.currentSong) return; Player.handleGatedFeature(() => { const song = appState.currentSong; const link = document.createElement('a'); link.href = song.audio; link.download = `${song.title} - ${song.artist}.mp3`; document.body.appendChild(link); link.click(); document.body.removeChild(link); }); }
+    };
+    
+    const PlayTracker = {
+        track(songId) {
+            const user = appState.currentUser;
+            const newPlayCount = (user.playCounts?.[songId] || 0) + 1;
+            let recent = user.recentlyPlayed || [];
+            const existingIndex = recent.indexOf(songId);
+            if (existingIndex > -1) { recent.splice(existingIndex, 1); }
+            recent.unshift(songId);
+            recent = recent.slice(0, 10);
+            
+            const updates = {};
+            updates[`users/${appState.userId}/playCounts/${songId}`] = newPlayCount;
+            updates[`users/${appState.userId}/recentlyPlayed`] = recent;
+            update(ref(db), updates);
+        }
+    };
+    
+    const QuizManager = { /* ... Logic remains largely unchanged as it operates on appState ... */ QUIZ_LENGTH: 5, PREVIEW_DURATION: 10, init() { dom.quizButton.addEventListener('click', () => this.open()); dom.startQuizBtn.addEventListener('click', () => this.start()); dom.playAgainBtn.addEventListener('click', () => this.start()); document.querySelector('#quizModal .modal-close').addEventListener('click', () => this.close()); }, open() { if (appState.currentSong && !dom.audioPlayer.paused) { Player.pause(); appState.quiz.wasPlayerPlaying = true; } this.switchView('start'); UI.showModal('quiz'); }, close() { this.stopPreview(); UI.hideModal('quiz'); if (appState.quiz.wasPlayerPlaying) { Player.play(); appState.quiz.wasPlayerPlaying = false; } }, switchView(view) { ['start', 'game', 'end'].forEach(v => dom[`quiz${v.charAt(0).toUpperCase() + v.slice(1)}View`].classList.add('hidden')); dom[`quiz${view.charAt(0).toUpperCase() + view.slice(1)}View`].classList.remove('hidden'); }, start() { if (appState.songs.length < 4) { alert("Need at least 4 songs in the library to start the quiz."); this.close(); return; } appState.quiz.sessionScore = 0; appState.quiz.currentQuestionIndex = 0; appState.quiz.questions = this.generateQuestions(); const stats = appState.currentUser.quizStats || { sessionsPlayed: 0, totalCorrect: 0, totalQuestions: 0 }; stats.sessionsPlayed++; update(ref(db, `users/${appState.userId}/quizStats`), stats); this.switchView('game'); this.nextQuestion(); }, generateQuestions() { const questions = []; const shuffledSongs = [...appState.songs].sort(() => 0.5 - Math.random()); for (let i = 0; i < this.QUIZ_LENGTH; i++) { if(i >= shuffledSongs.length) break; const correctAnswer = shuffledSongs[i]; const options = [correctAnswer]; const otherSongs = appState.songs.filter(s => s.id !== correctAnswer.id); while (options.length < 4 && otherSongs.length > 0) { const randomIndex = Math.floor(Math.random() * otherSongs.length); options.push(otherSongs.splice(randomIndex, 1)[0]); } questions.push({ correctAnswer, options: options.sort(() => 0.5 - Math.random()) }); } return questions; }, nextQuestion() { if (appState.quiz.currentQuestionIndex >= appState.quiz.questions.length) { this.end(); return; } dom.quizScoreText.textContent = `Score: ${appState.quiz.sessionScore} / ${this.QUIZ_LENGTH}`; const question = appState.quiz.questions[appState.quiz.currentQuestionIndex]; dom.quizAnswersContainer.innerHTML = ''; question.options.forEach(option => { const button = document.createElement('button'); button.className = 'quiz-answer-btn'; button.textContent = option.title; button.dataset.songId = option.id; button.addEventListener('click', () => this.handleAnswer(button)); dom.quizAnswersContainer.appendChild(button); }); this.playPreview(question.correctAnswer.audio); }, playPreview(audioSrc) { this.stopPreview(); const player = dom.quizAudioPlayer; player.src = audioSrc; player.onloadedmetadata = () => { const maxStartTime = player.duration - this.PREVIEW_DURATION; player.currentTime = Math.random() * (maxStartTime > 0 ? maxStartTime : 0); player.play(); let timeLeft = this.PREVIEW_DURATION; dom.quizTimerProgress.style.width = '100%'; appState.quiz.timer = setInterval(() => { timeLeft -= 0.1; const progress = (timeLeft / this.PREVIEW_DURATION) * 100; dom.quizTimerProgress.style.width = `${progress}%`; if (timeLeft <= 0) { this.handleAnswer(null); } }, 100); }; player.onerror = () => { console.error("Quiz audio failed to load."); this.handleAnswer(null); } }, stopPreview() { clearInterval(appState.quiz.timer); const player = dom.quizAudioPlayer; if (player) { player.pause(); player.currentTime = 0; } }, handleAnswer(button) { this.stopPreview(); const question = appState.quiz.questions[appState.quiz.currentQuestionIndex]; const correctButton = dom.quizAnswersContainer.querySelector(`[data-song-id='${question.correctAnswer.id}']`); const stats = appState.currentUser.quizStats; stats.totalQuestions++; if (button && button.dataset.songId == question.correctAnswer.id) { button.classList.add('correct'); appState.quiz.sessionScore++; stats.totalCorrect++; } else { if (button) button.classList.add('wrong'); if (correctButton) correctButton.classList.add('correct'); } update(ref(db, `users/${appState.userId}/quizStats`), stats); dom.quizAnswersContainer.querySelectorAll('button').forEach(btn => btn.disabled = true); setTimeout(() => { appState.quiz.currentQuestionIndex++; this.nextQuestion(); }, 2000); }, end() { dom.quizFinalScoreText.textContent = `Your final score: ${appState.quiz.sessionScore} / ${this.QUIZ_LENGTH}`; this.switchView('end'); } };
+    
+    // #################### APP LOGIC & INITIALIZATION ####################
+
+    const App = {
+        init() {
+            // Setup User ID
+            appState.userId = localStorage.getItem('musicx_userId');
+            if (!appState.userId) {
+                appState.userId = `user_${new Date().getTime()}`;
+                localStorage.setItem('musicx_userId', appState.userId);
+            }
+
+            // Load theme from localStorage (UI preference, not DB data)
+            const theme = localStorage.getItem('theme') || 'dark';
+            UI.setTheme(theme);
+
+            // Initialize Managers
+            Player.init();
+            PlaylistManager.init();
+            QuizManager.init();
+            this.addEventListeners();
+
+            // Start loading data from Firebase
+            this.loadDataFromFirebase();
+        },
+
+        loadDataFromFirebase() {
+            // Load Songs
+            onValue(ref(db, "songs"), snapshot => {
+                const data = snapshot.val() || {};
+                appState.songs = Object.entries(data).map(([id, v]) => ({ id, ...v }));
+                UI.renderSongs(appState.songs);
+                UI.renderRecentlyPlayed(); // Re-render in case songs loaded after user data
+                UI.renderMostPlayed();
+            });
+
+            // Load Promotional Banners
+            onValue(ref(db, "promo_banners"), snapshot => {
+                const data = snapshot.val() || {};
+                appState.promos = Object.entries(data).map(([id, v]) => ({ id, ...v }));
+                PromoSlider.init();
+            });
+
+            // Load Admin Settings (for payments, etc.)
+            onValue(ref(db, "admin_settings"), snapshot => {
+                appState.adminSettings = snapshot.val() || { upiId: 'admin@upi', qrCodeUrl: '', monthlyPrice: 99, yearlyPrice: 999 };
+                UI.renderPlans();
+            });
+
+            // Load User-Specific Data
+            onValue(ref(db, `users/${appState.userId}`), (snapshot) => {
+                let userData = snapshot.val();
+                if (!userData) { // If user is new, create a default profile in Firebase
+                    userData = { id: appState.userId, isPremium: false, premiumExpiry: null, likes: {}, playCounts: {}, recentlyPlayed: [], quizStats: { sessionsPlayed: 0, totalCorrect: 0, totalQuestions: 0 } };
+                    set(ref(db, `users/${appState.userId}`), userData);
+                }
+                appState.currentUser = userData;
+                this.checkPremiumExpiry();
+                this.checkPremiumUI();
+                UI.renderRecentlyPlayed();
+                UI.renderMostPlayed();
+            });
+            
+            // Load user playlists
+            onValue(ref(db, `user_playlists/${appState.userId}`), (snapshot) => {
+                const data = snapshot.val() || {};
+                appState.userPlaylists = Object.entries(data).map(([id, v]) => ({ id, ...v }));
+                PlaylistManager.renderPlaylistList();
+            });
+        },
+
+        checkPremiumExpiry() { const user = appState.currentUser; if (user && user.isPremium && user.premiumExpiry) { const expiryDate = new Date(user.premiumExpiry); const now = new Date(); if (now > expiryDate) { update(ref(db, `users/${appState.userId}`), { isPremium: false, premiumExpiry: null }); alert("Your premium subscription has expired. Please renew to continue enjoying premium benefits!"); } } },
+        checkPremiumUI() { const user = appState.currentUser; if (user.isPremium) { UI.hideAds(); if (user.premiumExpiry) { const expiryDate = new Date(user.premiumExpiry); const now = new Date(); const diffTime = expiryDate - now; const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); dom.premiumStatusDisplay.textContent = `Premium Active: ${diffDays} day(s) remaining.`; dom.premiumStatusDisplay.classList.remove('hidden'); } } else { UI.showAd('banner'); dom.premiumStatusDisplay.classList.add('hidden'); } },
+        addEventListeners() { dom.loaderWrapper.addEventListener('click', this.unlockAudio, { once: true }); dom.themeSwitcher.addEventListener('click', () => { const newTheme = document.body.classList.contains('light-mode') ? 'dark' : 'light'; UI.setTheme(newTheme); }); dom.searchInput.addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); const filteredSongs = appState.songs.filter(s => s.title.toLowerCase().includes(searchTerm) || s.artist.toLowerCase().includes(searchTerm) || s.section.toLowerCase().includes(searchTerm) ); UI.renderSongs(filteredSongs); });
+            // Use event delegation for all modal close buttons for robustness.
+            document.addEventListener('click', (e) => {
+                const closeBtn = e.target.closest('.modal-close');
+                if (closeBtn && closeBtn.dataset.modal && closeBtn.dataset.modal !== 'quizModal') {
+                    // The quiz modal has a separate, specific close handler in QuizManager.
+                    UI.hideModal(closeBtn.dataset.modal);
+                }
+            });
+            dom.plansContainer.addEventListener('click', e => { const planEl = e.target.closest('.plan'); if (planEl) this.selectPlan(planEl.dataset.plan); }); dom.screenshotInput.addEventListener('change', async (e) => { const file = e.target.files[0]; if (file) { dom.fileName.textContent = file.name; appState.pendingScreenshot = await this.readFileAsDataURL(file); dom.submitPaymentButton.disabled = false; } }); dom.submitPaymentButton.addEventListener('click', this.submitForApproval); dom.playerHandle.addEventListener('click', () => UI.togglePlayer(false)); },
+        unlockAudio() { dom.audioPlayer.play().catch(() => {}); dom.audioPlayer.pause(); dom.quizAudioPlayer.play().catch(() => {}); dom.quizAudioPlayer.pause(); appState.isAudioContextUnlocked = true; dom.loaderWrapper.classList.add('hidden'); },
+        selectPlan(planName) { const settings = appState.adminSettings; const price = planName === 'Monthly' ? settings.monthlyPrice : settings.yearlyPrice; dom.paymentPlanTitle.textContent = `${planName} Plan - ₹${price}`; dom.paymentQrCode.src = settings.qrCodeUrl; dom.paymentUpiId.textContent = `UPI ID: ${settings.upiId}`; appState.selectedPlan = { name: planName, price: price }; UI.hideModal('premium'); UI.showModal('payment'); },
+        readFileAsDataURL(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }); },
+        submitForApproval() {
+            if (!appState.pendingScreenshot) { alert('Please upload a screenshot first.'); return; }
+            const newRequest = { userId: appState.userId, plan: appState.selectedPlan.name, screenshot: appState.pendingScreenshot, date: new Date().toISOString() };
+            push(ref(db, 'premium_requests'), newRequest);
+            appState.pendingScreenshot = null; dom.submitPaymentButton.disabled = true; dom.fileName.textContent = ''; dom.screenshotInput.value = ''; UI.hideModal('payment'); alert('Your request has been submitted for approval!');
+        },
+    };
+    
+    function setPlayPauseIcon(isPlaying) {
+        const el = document.getElementById('playPauseIcon');
+        if (el) el.src = isPlaying ? './assets/icons/pause.png' : './assets/icons/play.png';
+        if (miniPlayPauseIcon) miniPlayPauseIcon.src = isPlaying ? './assets/icons/pause.png' : './assets/icons/play.png';
+    }
+    
+    App.init();
+
+
+// ===== MINI PLAYER CONTROL =====
+const miniPlayer = document.getElementById("miniPlayer");
+const miniTitle = document.getElementById("miniTitle");
+const miniArtist = document.getElementById("miniArtist");
+const miniThumb = document.getElementById("miniThumb");
+const miniLikeBtn = document.getElementById("miniLike");
+const miniPlayPauseBtn = document.getElementById("miniPlayPause");
+const miniPlayPauseIcon = miniPlayPauseBtn.querySelector("img");
+
+
+
+// ✅ Mini Play/Pause toggle
+miniPlayPauseBtn.addEventListener("click", () => {
+  if (dom.audioPlayer.paused) {
+    dom.audioPlayer.play();
+    miniPlayPauseIcon.src = "./assets/icons/pause.png";
+    document.getElementById("playPauseIcon").src = "./assets/icons/pause.png";
+  } else {
+    dom.audioPlayer.pause();
+    miniPlayPauseIcon.src = "./assets/icons/play.png";
+    document.getElementById("playPauseIcon").src = "./assets/icons/play.png";
+  }
+});
+
+// ✅ Mini Like sync with big like
+miniLikeBtn.addEventListener("click", () => {
+  dom.likeButton.click(); // trigger big like button
+});
+
+// ✅ Tap mini player → open big player again
+miniPlayer.addEventListener("click", () => {
+  UI.togglePlayer(true);
+});
+</script>
+
+<!-- External Ad/Tracking Scripts -->
+<script type='text/javascript' src='//pl27390411.profitableratecpm.com/83/6f/68/836f6868ffcfa9517cd6980915baa231.js'></script>
+<div class="bottom-banner-ad" id="bottomBannerAd">
+  <div class="banner-ad-content">
+  <script type="text/javascript">
+	atOptions = {
+		'key' : 'e16ee9af80cb19cc2ffdf56881014db8',
+		'format' : 'iframe',
+		'height' : 50,
+		'width' : 320,
+		'params' : {}
+	};
+</script>
+<script type="text/javascript" src="//www.highperformanceformat.com/e16ee9af80cb19cc2ffdf56881014db8/invoke.js"></script>
+   </div>
+</div>
+
+</body>
+</html>
